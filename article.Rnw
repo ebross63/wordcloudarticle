@@ -1,0 +1,102 @@
+\documentclass{article}
+
+\begin{document}
+
+\title{The Strange Case of Dr. Jekyll \& Mr. Hyde in Wordclouds}
+\author{Elizabeth Bross}
+\maketitle
+
+\begin{abstract}
+
+In this article we will construct two wordclouds, using the tidytext R package, for Robert Louis Stevenson's novel \textit{The Strange Case of Dr. Jekyll \& Mr. Hyde}. For those unfamiliar, \textit{The Strange Case of Dr. Jekyll \& Mr. Hyde} is a story set in Victorian era London about a series of odd coincidents bewtween two opposite characters: the kind Dr. Henry Jekyll and the evil Mr. Edward Hyde. As the story progresses, the reader becomes aware that Jekyll and Hyde are indeed the same person. The other characters are tasked with connecting occurances and eventually realize Dr. Jekyll transforms into Hyde by drinking a serum he invented. To capture the `good versus evil' theme of the book, we will create two wordclouds using opposing sentiment categories.
+
+\end{abstract}
+
+\section{The gutenbergr Package}
+The package for R, gutenbergr, that gives one electronic access to over 50,000 free books. The collection is made up of the world's great titles from throughout history and includes older works with expired copyrights\footnote{you can find more information on Project Gutenberg here:  https://www.gutenberg.org/}. To begin this project, install the required packages and download the text. The gutenberg\_id number for \textit{The Strange Case of Dr. Jekyll \& Mr. Hyde} is 42. 
+
+<<warning=FALSE,message=FALSE>>=
+library(tm)
+library(tidytext)
+library(dplyr)
+library(knitr)
+library(gutenbergr)
+library(stringr)
+library(wordcloud)
+JandH<-gutenberg_download(42)
+@
+
+\section{Data Preparation}
+
+We must first create a dataframe of all the words in the novel. This is easy to do with tidytext package. Use the unnest\_tokens function to break down the words into a dataframe.
+
+<<>>=
+JandH_words<-JandH%>%
+  unnest_tokens(word,text)
+@
+
+\noindent To determine which words we will look at, we will use those listed in the sentiment lexicon `nrc'. The tidytext package provides four sentiment lexicons. The `nrc' lexicon assign one of ten descriptions to important words in the English language. This technique eliminates the need to remove `stopwords'\footnote{a list of stopwords is available in the R package tm.} which are common, irrelevent words. 
+
+<<>>=
+nrc<-get_sentiments('nrc')
+unique(nrc$sentiment)
+
+nrc_fear<-nrc%>%
+  filter(sentiment %in% c('fear','negative',
+                          'sadness','anger','disgust'))
+
+nrc_happy<-nrc%>%
+  filter(sentiment %in% c('trust','surprise',
+                          'positive','joy','anticipation'))
+@
+
+\noindent Then, use the inner\_join function to match the words in our newly created dataframe JandH\_words with words provided in the nrc lexicon.
+
+<<message=FALSE>>=
+JandH_fear_words<-inner_join(nrc_fear,JandH_words)
+JandH_happy_words<-inner_join(nrc_happy,JandH_words)
+@
+
+\section{The Wordclouds}
+
+To begin creating the word coulds, use dplyr to calculate the frequency of words included in the JandH\_fear\_words dataframe. Be sure to create a new dataframe to make the creation of the final wordcloud easier.
+
+<<>>=
+  JandH_fear_freq<-JandH_fear_words%>%
+  group_by(word)%>%
+  summarize(count=n())
+@
+
+\noindent Then repeat this step on the JandH\_happy\_words dataframe.
+
+<<>>=
+JandH_happy_freq<-JandH_happy_words%>%
+  group_by(word)%>%
+  summarize(count=n())
+@
+
+\noindent Finally, use the wordcloud() function to create the fear themed wordcloud. In context of \textit{The Strange Case of Dr. Jekyll \& Mr. Hyde}, you could call this the Hyde wordcloud. Set the min.freq to 5 to avoid overloading your wordcloud.
+<<message=FALSE>>=
+wordcloud(JandH_fear_freq$word,JandH_fear_freq$count,min.freq = 5)
+@
+
+\noindent Repeat with JandH\_happy\_freq to create your Jekyll wordcloud.
+<<message=FALSE>>=
+wordcloud(JandH_happy_freq$word,JandH_happy_freq$count,min.freq = 5)
+@
+
+\end{document}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
